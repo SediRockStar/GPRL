@@ -1,5 +1,4 @@
-Gaussian Process Reinforcement Learning
 
-This is a coding project for Stats 672 Final class project. The goal is to implement the algorithm introduced in the GPRL paper
-by Carl Edward Rasmussen
-http://papers.nips.cc/paper/2420-gaussian-processes-in-reinforcement-learning.pdf
+Work based on the reproduction from [DavidRSeWell](https://github.com/DavidRSeWell/GPRL) on Paper [Gaussian Processes in Reinforcement Learning](https://papers.nips.cc/paper_files/paper/2003/hash/7993e11204b215b27694b6f139e34ce8-Abstract.html)
+
+Team members: Steve Wen, Chole Si
