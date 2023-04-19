@@ -474,7 +474,7 @@ class GPRL:
 
         for t in range(T):
 
-            self.plot_best_path(t)
+            #self.plot_best_path(t)
 
             R = np.zeros((S.shape[0],1))
             V = np.zeros((S.shape[0],1))
@@ -526,7 +526,7 @@ class GPRL:
 
         self.plot_value_func(V_s,'Value at iteration {}'.format('Final'))
 
-        self.plot_best_path('Final')
+        #self.plot_best_path('Final')
 
     def sample_env(self,p,v):
         '''
@@ -585,7 +585,7 @@ class GPRL:
         :param N:
         :return:
         '''
-        env_wrap = gym.wrappers.Monitor(self.env, '/Users/befeltingu/GPRL/Data/', force=True)
+        env_wrap = gym.wrappers.Monitor(self.env, 'GPRL/Data/', force=True)
 
         env_wrap.reset()
 
@@ -619,7 +619,7 @@ if __name__ == '__main__':
 
     from gym import envs
 
-    print(envs.registry.all())
+    #print(envs.registry.all())
 
 
     #############################
@@ -649,6 +649,6 @@ if __name__ == '__main__':
 
     gprl.run(T=T)
 
-    gprl.simulate_env()
+    #gprl.simulate_env()
 
 

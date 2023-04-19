@@ -1,8 +1,5 @@
-
-
-"""Implementation of Gaussian Processes in RL by Carl Edward Rasmussen
-   http://papers.nips.cc/paper/2420-gaussian-processes-in-reinforcement-learning.pdf
-"""
+from datetime import datetime
+from os import mkdir
 
 import gym
 import matplotlib.pyplot as plt
@@ -12,69 +9,12 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from matplotlib import cm
 
-from GP import GP
+from gym import envs
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Matern, WhiteKernel, RationalQuadratic, ExpSineSquared
+import argparse
+dirName= None
 
-
-def k_cov(x1, x2, v, l,sigma):
-
-    A = (v**2)*np.exp(-np.dot((x1 - x2),(x1 - x2))*(1.0 / l**2))
-
-    if np.array_equal(x1,x2):
-        return A
-
-    else:
-        return A
-
-def dk_dl(x1,x2,v,l):
-    return 2*(v**2)*(np.dot((x1 - x2),(x1 - x2))*np.exp(-np.dot((x1 - x2),(x1 - x2))*(1.0 / l**2))) / l**3
-
-def dk_dv(x1,x2,v,l):
-    return 2*v*np.exp(-np.dot((x1 - x2),(x1 - x2))*(1.0 / l**2))
-
-def dk_dsigma(x1,x2,sigma):
-
-    if np.array_equal(x1,x2):
-        return 2*sigma
-
-    else:
-        return 0.0
-
-
-def sample_discreet_env(env,N):
-    '''
-    Function to randomly grab samples from
-    the environment
-    :param env: Gym object
-    :return:
-    '''
-
-    min_pos = env.min_position
-    max_pos = env.max_position
-    max_speed = env.max_speed
-    goal_position = env.goal_position
-
-    samples = []
-
-    for n in range(N):
-
-        sample_pos = np.random.uniform(min_pos,max_pos)
-
-        sample_vel = np.random.uniform(0,max_speed)
-
-        s = (sample_pos,sample_vel)
-
-        action = np.random.randint(3)
-
-        env.env.state = s # set gym environment to the state to sample from
-
-        env.step(action)
-
-        s_p = env.env.state # new state from the environment
-
-        samples.append((s,action,s_p))
-
-
-    return samples
 
 def create_train_test(samples):
     '''
@@ -102,7 +42,7 @@ class GPRL:
     OPEN AI GYM implementations. I will be using the MountianCar Environment
     '''
 
-    def __init__(self,env,gamma):
+    def __init__(self,env,gamma, draw= False):
         '''
         :param env: Gym style environment
         '''
@@ -110,20 +50,15 @@ class GPRL:
         self.env = env
         self.gamma = gamma # future value discount rate
 
-        #####################
-        # Where my GP's at? #
-        #####################
         self.GP_V = None # Value GP
-        self.GP_E = None # GP for the environment
 
-        ##################
-        # Support points #
-        ##################
+        self.draw= draw
+
+
         self.pos_m = np.array([]) # Pos values
         self.vel_m = np.array([]) # velocity values
         self.S = np.array([])
         self.V = np.array([]) # Values lookup Table
-        self.W = np.array([]) # User for computing
 
     def act_greedy(self, s):
         '''
@@ -158,45 +93,6 @@ class GPRL:
 
         return a_max
 
-    def compute_environment_dynamics(self):
-        '''
-        Train a GP to learn the dynamics
-        We actually train 2 GPs one to learn
-        position given state and action (s,a).
-        The other to learn velocity given (s,a)
-        :return:
-        '''
-        samples_train = sample_discreet_env(env, 500)
-
-        X_train, Y_train = create_train_test(samples_train)
-
-        #samples_test = sample_discreet_env(env, 5)
-
-        #X_test, Y_test = create_train_test(samples_test)
-
-        self.gp_x = GP()
-
-        self.gp_x.train(X_train, Y_train[:,0])
-
-        #rand_index = np.random.randint(0,len(X_test))
-        #random_point = X_test[rand_index].reshape((1,3))
-
-        #gp_x.predict(random_point)
-
-        #prediction = gp_x.mean
-
-        # velocity GP
-        self.gp_dx = GP()
-
-        self.gp_dx.train(X_train, Y_train[:,1])
-
-        #gp_dx.predict(random_point)
-
-        #prediction_dx = gp_dx.mean
-
-        #actual = Y_test[rand_index]
-
-        print('Done bro')
 
     def create_grid(self,n=25):
         '''
@@ -210,9 +106,8 @@ class GPRL:
 
         self.pos_m = np.linspace(min_pos,max_pos,n)
         self.vel_m = np.linspace(-max_speed,max_speed,n)
-
         V = np.zeros((n,n))
-        S = np.zeros((n,n,2)) #TODO Get rid of hardcoded state length 2
+        S = np.zeros((n,n,2))
 
         for i, x in enumerate(self.pos_m):
             for j, dx in enumerate(self.vel_m):
@@ -221,7 +116,7 @@ class GPRL:
 
         return S,V
 
-    def init_value(self,m=25):
+    def init_value(self,m=21):
         '''
         Sample m support vectors and initialize
         V (m x d) = (V(s_1) ... V(s_m)) where V(s_i) = R_i
@@ -237,7 +132,9 @@ class GPRL:
         self.S = S
         self.V = V
 
-    def plot_best_path(self,iter):
+
+
+    def plot_best_path(self, path):
         '''
         Function for taking the current value function
         and plotting a graph of the path taken through
@@ -245,17 +142,19 @@ class GPRL:
         :return:
         '''
 
-        path = self.simulate_env()
+
         y = [x for x in range(1,len(path) + 1)]
-        #xs = np.linspace(self.env.min_position, self.env.max_position, 100)
-        #ys = self.height(xs)
-        #plt.plot(xs,ys)
 
         plt.plot(path,y)
         plt.scatter(path,y)
         plt.xlim(self.env.min_position,self.env.max_position)
-        plt.title('Best path at iteratioi {}'.format(iter))
-        plt.show()
+
+        plt.title('Best path')
+        #plt.show()
+
+        plt.savefig('{}/best_path.png'.format(dirName))
+        plt.close()
+
 
     def plot_value_func(self,V,text=''):
         '''
@@ -265,23 +164,13 @@ class GPRL:
         '''
 
         fig = plt.figure()
-        ax = fig.gca(projection='3d')
-
-        min_pos = self.env.min_position
-        max_pos = self.env.max_position
-        max_speed = self.env.max_speed
-
-        n = V.shape[0]
-        self.pos_m = np.linspace(min_pos, max_pos, n)
-        self.vel_m = np.linspace(-max_speed, max_speed, n)
-
+        ax = fig.add_subplot(projection='3d')
         pos, vel = np.meshgrid(self.pos_m, self.vel_m)
-
         surf = ax.plot_surface(pos, vel, V.T,cmap=cm.coolwarm,
                                linewidth=0, antialiased=False)
 
         # Customize the z axis.
-        ax.set_zlim(0, 1)
+        ax.set_zlim(0, 5)
         ax.zaxis.set_major_locator(LinearLocator(10))
         ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
 
@@ -289,7 +178,9 @@ class GPRL:
         fig.colorbar(surf, shrink=0.5, aspect=5)
 
         plt.title(text)
-        plt.show()
+        #plt.show()
+        plt.savefig('{}/value_func.png'.format(dirName))
+        plt.close(fig)
 
     def run(self,T=50):
         '''
@@ -306,7 +197,7 @@ class GPRL:
         ######################
 
 
-        self.init_value(m=20)
+        self.init_value(m=21)
 
         self.env.reset()
 
@@ -325,20 +216,12 @@ class GPRL:
 
         S_Grid = S_Grid.reshape((GRID_SIZE**2,2))
 
-        y_pred = self.GP_V.predict(S_Grid)
-
-        V_s = y_pred.reshape((GRID_SIZE, GRID_SIZE))
-
-        self.plot_value_func(V_s,'Max Marginal')
 
 
         for t in range(T):
-
-            self.plot_best_path(t)
-
             R = np.zeros((S.shape[0],1))
             V = np.zeros((S.shape[0],1))
-            for i , s_i in enumerate(S):
+            for i, s_i in enumerate(S):
 
                 a = self.act_greedy(s_i)
 
@@ -346,9 +229,10 @@ class GPRL:
 
                 s,r,d,_ = self.env.step(a)
 
-                if r < 0: r = 0
+                if r < 0:
+                    r = 0
 
-                if d == True:
+                if d:
                     r = 1
 
                 R[i] = r
@@ -364,16 +248,25 @@ class GPRL:
 
             self.GP_V = self.GP_V.fit(S, V)
 
+
+
+            path, success, statep = self.test_env()
+            #if success:
+                #print(t, statep)
+                #break
+
+            #self.plot_value_func(V_s, 'Value at iteration {}'.format(t))
+        if self.draw:
+
+            path= self.simulate_env()
+            self.plot_best_path(path)
             y_pred = self.GP_V.predict(S_Grid)
-
             V_s = y_pred.reshape((GRID_SIZE, GRID_SIZE))
+            self.plot_value_func(V_s,'Value at iteration {}'.format('Final'))
 
-            self.plot_value_func(V_s, 'Value at iteration {}'.format(t))
-
-        self.plot_value_func(V_s,'Value at iteration {}'.format('Final'))
-
-        self.plot_best_path('Final')
-
+        for i in range(100):
+            path, success, statep = self.test_env()
+            print(len(path))
     def sample_discreet_env(self,M):
         '''
         Function to randomly grab samples from
@@ -424,6 +317,31 @@ class GPRL:
 
         return r1
 
+    def test_env(self):
+
+        env= self.env
+        env.reset()
+        env = env.unwrapped
+        rndPos= -np.random.uniform(0.52, 0.58)
+        env.state= np.array([rndPos, 0])
+        state= env.state
+        pos_x = []
+        success= False
+        for _ in range(200):
+
+            action_r = self.act_greedy(env.state)
+
+            s,r,d,_ = env.step(action_r)  # take a random action
+            #print(s, action_r)
+            pos_x.append(s[0])
+            if d:
+                success= True
+                break
+
+        self.env.close()
+
+        return pos_x, success, state
+
     def simulate_env(self):
         '''
         Run the actual gym enviroment
@@ -431,15 +349,16 @@ class GPRL:
         :param N:
         :return:
         '''
-        env_wrap = gym.wrappers.Monitor(self.env, '/Users/befeltingu/GPRL/Data/', force=True)
+        env_wrap = gym.wrappers.Monitor(self.env, dirName, force=True)
 
         env_wrap.reset()
 
+        rndPos = -np.random.uniform(0.52, 0.58)
+        env_wrap.env.env.state = np.array([-0.57, 0])
         pos_x = []
 
         for _ in range(200):
 
-            #env_wrap.render()
 
             action_r = self.act_greedy(env_wrap.state)
 
@@ -458,38 +377,52 @@ class GPRL:
 
 if __name__ == '__main__':
 
-    #############################
-    # GPRL Hyper parameters
-    #############################
-    T =  50# number of iterations to run the model
 
-    from gym import envs
-    from sklearn.gaussian_process import GaussianProcessRegressor
-    from sklearn.gaussian_process.kernels import RBF, ConstantKernel ,Matern,WhiteKernel
+    # create the parser
+    parser = argparse.ArgumentParser()
 
-    print(envs.registry.all())
+    # add arguments to the parser
+    parser.add_argument('-T', '--T', type=int, help="Number of runs", default= 50)
+    parser.add_argument('-ker', '--kernel', type=str, help="Kernel", default= 'Matern')
+    parser.add_argument('-g', '--gamma', type=float, help="Discount", default= 0.8)
+    parser.add_argument('-p', '--plot', type=bool, help="Draw the plots or not", default= False)
+    parser.add_argument('-dir', '--dir', type=str, help="directory to save", default= "Data")
 
-    #############################
-    # Value GP Hyper parameters
-    #############################
-    V_SIGMA = 0.01 # noise
-    L = 1 # Length scale
-    V = 0.1 #
+    # parse the arguments
+    args = parser.parse_args()
+
+    # Hyperparameters
+    T =  args.T
+    gamma = args.gamma
+    draw = args.plot
+
+    dirName= args.dir
+
+
+
+    if args.kernel == 'Matern':
+        kernel = Matern(length_scale=2, nu=3 / 2)+ ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
+    elif args.kernel == 'RBF':
+        kernel = RBF(1) + ConstantKernel(constant_value=2)+ WhiteKernel(noise_level= 1)
+    elif args.kernel == 'RationalQuadratic':
+        kernel = RationalQuadratic(length_scale=1.0, alpha=1.5) + ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
+    elif args.kernel == 'ExpSineSquared':
+        kernel = ExpSineSquared(length_scale=1.0, periodicity=4, periodicity_bounds=(1e-2, 1e1)) + ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
+    else:
+        kernel = Matern(length_scale=2, nu=3 / 2)+ ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
+
+
+
 
     env = gym.make('MountainCar-v0')
     env.reset()
 
-    gprl = GPRL(env,gamma=0.8)
+    gprl = GPRL(env,gamma= gamma, draw= draw)
 
-    #kernel = RBF(10, (1e-2, 1e2))
-
-    kernel = ConstantKernel() + Matern(length_scale=2, nu=3 / 2) + WhiteKernel(noise_level=1)
-
-    gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=20)
+    gp = GaussianProcessRegressor(kernel=kernel, optimizer= "fmin_l_bfgs_b", n_restarts_optimizer=0, random_state= 2002)
 
     gprl.GP_V = gp
 
     gprl.run(T=T)
 
-    gprl.simulate_env()
 
