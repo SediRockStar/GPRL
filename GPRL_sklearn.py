@@ -264,7 +264,7 @@ class GPRL:
             V_s = y_pred.reshape((GRID_SIZE, GRID_SIZE))
             self.plot_value_func(V_s,'Value at iteration {}'.format('Final'))
 
-        for i in range(100):
+        for i in range(50):
             path, success, statep = self.test_env()
             print(len(path))
     def sample_discreet_env(self,M):
@@ -406,7 +406,7 @@ if __name__ == '__main__':
         kernel = RBF(1) + ConstantKernel(constant_value=2)+ WhiteKernel(noise_level= 1)
     elif args.kernel == 'RationalQuadratic':
         kernel = RationalQuadratic(length_scale=1.0, alpha=1.5) + ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
-    elif args.kernel == 'ExpSineSquared':
+    elif args.kernel == 'fineSquared':
         kernel = ExpSineSquared(length_scale=1.0, periodicity=4, periodicity_bounds=(1e-2, 1e1)) + ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
     else:
         kernel = Matern(length_scale=2, nu=3 / 2)+ ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
