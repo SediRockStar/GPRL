@@ -1,7 +1,7 @@
 #!/bin/bash
 
-kernel='Matern'
-T=1
+kernel='fineSquared'
+T=50
 
 d=$(date +"%d%m%Y_%H%M%S")
 resDir="Data/Experiment_"
@@ -9,7 +9,7 @@ resDir+=$d
 resDir+=_$kernel
 resDir+=$T
 [ -d Data ] || mkdir Data # if Data folder does not exist, create it
-# shellcheck disable=SC2046
+#shellcheck disable=SC2046
 [ -d $resDir ] || mkdir $resDir # if result_dir does not exist, create it
 
 res=$resDir"/result.txt"

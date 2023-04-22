@@ -615,7 +615,7 @@ if __name__ == '__main__':
     #############################
     # GPRL Hyper parameters
     #############################
-    T =  50# number of iterations to run the model
+    T = 50# number of iterations to run the model
 
     from gym import envs
 

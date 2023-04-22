@@ -264,9 +264,14 @@ class GPRL:
             V_s = y_pred.reshape((GRID_SIZE, GRID_SIZE))
             self.plot_value_func(V_s,'Value at iteration {}'.format('Final'))
 
+        all_path=[]
+
         for i in range(50):
             path, success, statep = self.test_env()
-            print(len(path))
+            all_path.append(len(path))
+            #print(len(path))
+        print(np.mean(all_path))
+        print(np.std(all_path))
     def sample_discreet_env(self,M):
         '''
         Function to randomly grab samples from
@@ -392,7 +397,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Hyperparameters
-    T =  args.T
+    T = args.T
     gamma = args.gamma
     draw = args.plot
 
