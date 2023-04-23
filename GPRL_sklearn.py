@@ -97,8 +97,6 @@ class GPRL:
     def create_grid(self,n=25):
         '''
         Create 2d grid of position,velocity values
-        :param n:
-        :return:
         '''
         min_pos = self.env.min_position
         max_pos = self.env.max_position
@@ -221,7 +219,7 @@ class GPRL:
         for t in range(T):
             R = np.zeros((S.shape[0],1))
             V = np.zeros((S.shape[0],1))
-            for i, s_i in enumerate(S):
+            for i, s_i in enumerate(S[::-1]):
 
                 a = self.act_greedy(s_i)
 
@@ -326,9 +324,9 @@ class GPRL:
 
         env= self.env
         env.reset()
-        env = env.unwrapped
-        rndPos= -np.random.uniform(0.52, 0.58)
-        env.state= np.array([rndPos, 0])
+        #env = env.unwrapped
+        #rndPos= -np.random.uniform(0.52, 0.58)
+        #env.state= np.array([rndPos, 0])
         state= env.state
         pos_x = []
         success= False
@@ -358,8 +356,8 @@ class GPRL:
 
         env_wrap.reset()
 
-        rndPos = -np.random.uniform(0.52, 0.58)
-        env_wrap.env.env.state = np.array([-0.57, 0])
+        #rndPos = -np.random.uniform(0.52, 0.58)
+        #env_wrap.env.env.state = np.array([-0.57, 0])
         pos_x = []
 
         for _ in range(200):
@@ -387,7 +385,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # add arguments to the parser
-    parser.add_argument('-T', '--T', type=int, help="Number of runs", default= 50)
+    parser.add_argument('-T', '--T', type=int, help="Number of runs", default= 10)
     parser.add_argument('-ker', '--kernel', type=str, help="Kernel", default= 'Matern')
     parser.add_argument('-g', '--gamma', type=float, help="Discount", default= 0.8)
     parser.add_argument('-p', '--plot', type=bool, help="Draw the plots or not", default= False)
@@ -411,7 +409,7 @@ if __name__ == '__main__':
         kernel = RBF(1) + ConstantKernel(constant_value=2)+ WhiteKernel(noise_level= 1)
     elif args.kernel == 'RationalQuadratic':
         kernel = RationalQuadratic(length_scale=1.0, alpha=1.5) + ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
-    elif args.kernel == 'fineSquared':
+    elif args.kernel == 'ExpSineSquared':
         kernel = ExpSineSquared(length_scale=1.0, periodicity=4, periodicity_bounds=(1e-2, 1e1)) + ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
     else:
         kernel = Matern(length_scale=2, nu=3 / 2)+ ConstantKernel(constant_value=2) + WhiteKernel(noise_level=1)
