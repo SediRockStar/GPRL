@@ -268,8 +268,8 @@ class GPRL:
             path, success, statep = self.test_env()
             all_path.append(len(path))
             #print(len(path))
-        print(np.mean(all_path))
-        print(np.std(all_path))
+        #print(np.mean(all_path))
+        #print(np.std(all_path))
     def sample_discreet_env(self,M):
         '''
         Function to randomly grab samples from
@@ -428,4 +428,18 @@ if __name__ == '__main__':
 
     gprl.run(T=T)
 
+    min_pos, max_pos = -1.2, 0.6
+    min_vel, max_vel = -0.07, 0.07
+
+    # Discretize state space
+    sample_pos = np.linspace(min_pos, max_pos, 5)
+    sample_v = np.linspace(min_vel, max_vel, 5)
+
+    for pos in sample_pos:
+        for v in sample_v:
+            state = np.array([pos, v])
+            _, std= gp.predict(state.reshape(1, -1), return_std=True)
+            print(std[0])
+
+    print("///////////////////////////////")
 

@@ -107,8 +107,6 @@ def test_agent(env, dqn):
 if __name__== "__main__":
     # Initialize the environment and DQN agent
     env = gym.make('MountainCar-v0')
-    #print(env.goal_position)
-    env.seed(seed)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
     dqn = DQN(state_dim, action_dim)
@@ -148,7 +146,7 @@ if __name__== "__main__":
 
             if done:
                 episode_rewards.append(episode_reward)
-                print(f"Episode: {episode}, Reward: {episode_reward}, Epsilon: {epsilon}")
+                #print(f"Episode: {episode}, Reward: {episode_reward}, Epsilon: {epsilon}")
 
                 if episode % 10 == 0:
                     target_dqn.load_state_dict(dqn.state_dict())
@@ -157,14 +155,30 @@ if __name__== "__main__":
 
     env.close()
 
-    test_episodes = 1000
+    test_episodes = 50
     test_rewards = []
 
     for _ in range(test_episodes):
         test_reward, pos = test_agent(env, dqn)
         if test_reward> -200 or pos:
-            print(test_reward)
+            #print(test_reward)
             test_rewards.append(test_reward)
 
     env.close()
-    print(f"Mean test reward: {np.mean(test_rewards)}")
+    print(np.mean(test_rewards), np.std(test_rewards))
+
+    min_pos, max_pos = -1.2, 0.6
+    min_vel, max_vel = -0.07, 0.07
+
+    # Discretize state space
+    sample_pos = np.linspace(min_pos, max_pos, 5)
+    sample_v = np.linspace(min_vel, max_vel, 5)
+
+    for pos in sample_pos:
+        for v in sample_v:
+            state= np.array([pos, v])
+            q_values = dqn(torch.tensor(state, dtype=torch.float32))
+            print(torch.max(q_values).item())
+
+    print("///////////////////////////////")
+
