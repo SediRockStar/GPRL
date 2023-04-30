@@ -1,24 +1,26 @@
 #!/bin/bash
 
-kernel='fineSquared'
-T=50
 
-d=$(date +"%d%m%Y_%H%M%S")
-resDir="Data/Experiment_"
-resDir+=$d
-resDir+=_$kernel
-resDir+=$T
-[ -d Data ] || mkdir Data # if Data folder does not exist, create it
-#shellcheck disable=SC2046
-[ -d $resDir ] || mkdir $resDir # if result_dir does not exist, create it
+kernel=("Matern", "RBF", "RetionalQuadratic", "ExpSineSquared")
+T=(10, 25, 50)
+[ -d Data ] || mkdir Data
 
-res=$resDir"/result.txt"
-
-
-touch $res
-
-for i in {1..10}
+for (( i=0; i<${#kernel[@]}; i++ ))
 do
-  # shellcheck disable=SC2046
-  python GPRL_sklearn.py -T $T -g 0.8 -ker $kernel -p True -dir $resDir>> $res
+  for (( j=0; j<${#T[@]}; j++ ))
+  do
+    d=$(date +"%d%m%Y_%H%M%S")
+    resDir="Data/Experiment_"
+    resDir+=$d
+    resDir+=_${kernel[i]}
+    resDir+=_${T[j]}
+     # if Data folder does not exist, create it
+    [ -d $resDir ] || mkdir $resDir # if result_dir does not exist, create it
+    res=$resDir"/result.txt"
+    touch $res
+    for (( k=1; k<=10; k++ ))
+    do
+      python GPRL_sklearn.py -T ${T[j]} -g 0.9 -ker ${kernel[i]} -p True -dir $resDir >> $res
+    done
+  done
 done
